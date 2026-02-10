@@ -32,9 +32,12 @@ export const registerTeam = async (req, res) => {
             return res.status(400).json({ message: "All fields are required" });
         }
 
-        // Validate members array
-        if (!Array.isArray(members) || members.length === 0) {
-            return res.status(400).json({ message: "At least one team member is required" });
+        // Validate members array (min 2, max 4)
+        if (!Array.isArray(members) || members.length < 2) {
+            return res.status(400).json({ message: "At least 2 team members are required" });
+        }
+        if (members.length > 4) {
+            return res.status(400).json({ message: "Maximum 4 team members are allowed" });
         }
 
         for (const member of members) {
