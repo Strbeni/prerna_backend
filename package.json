@@ -1,0 +1,30 @@
+{
+  "name": "prerna_backend",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "server": "nodemon server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Strbeni/prerna_backend.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/Strbeni/prerna_backend/issues"
+  },
+  "homepage": "https://github.com/Strbeni/prerna_backend#readme",
+  "dependencies": {
+    "cors": "^2.8.6",
+    "dotenv": "^17.2.4",
+    "express": "^5.2.1",
+    "googleapis": "^171.4.0",
+    "mongoose": "^9.1.6",
+    "nodemailer": "^8.0.1",
+    "nodemon": "^3.1.11"
+  }
+}
