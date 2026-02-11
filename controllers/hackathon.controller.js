@@ -1,5 +1,17 @@
 import Hackathon from "../models/hackathon.model.js";
 import transporter from "../config/nodemailer.js";
+import { appendToSheet } from "../config/googlesheets.js";
+async function sendEmail(leaderEmail) {
+    const mailOptions = {
+        from: `Prerna Hackathon <${process.env.ADMIN_EMAIL}>`,
+        to: leaderEmail,
+        subject: `Prerna Hackathon Registration`,
+        html: `
+        <h1>Congratulations!</h1>
+        <p>Your team has been successfully registered for the Prerna Hackathon.</p>
+        <p>We are excited to have you on board and look forward to seeing your innovative ideas come to life during the event.</p>`
+
+    };
 import { generateQRCodeBuffer } from "../qrcode/qrcode_gen.js";
 import { generateTicketHTML } from "../utils/emailTemplates.js";
 
@@ -51,12 +63,12 @@ export const registerTeam = async (req, res) => {
             return res.status(400).json({ message: "All fields are required" });
         }
 
-        // Validate members array (min 2, max 4)
-        if (!Array.isArray(members) || members.length < 2) {
-            return res.status(400).json({ message: "At least 2 team members are required" });
+        // Validate members array (min 1 additional member, max 3)
+        if (!Array.isArray(members) || members.length < 1) {
+            return res.status(400).json({ message: "At least 1 additional team member is required" });
         }
-        if (members.length > 4) {
-            return res.status(400).json({ message: "Maximum 4 team members are allowed" });
+        if (members.length > 3) {
+            return res.status(400).json({ message: "Maximum 3 additional team members are allowed (Total 4 including leader)" });
         }
 
         for (const member of members) {
@@ -65,11 +77,14 @@ export const registerTeam = async (req, res) => {
             }
         }
 
-        const teamExists = await Hackathon.findOne({ $or: [{ teamName }, { leaderEmail }] });
-        if (teamExists) {
-            return res.status(400).json({ message: "Team name or leader email already exists" });
+        const nameExists = await Hackathon.findOne({ teamName });
+        if (nameExists) {
+            return res.status(400).json({ message: `Team name "${teamName}" already exists` });
         }
-        
+        const emailExists = await Hackathon.findOne({ leaderEmail });
+        if (emailExists) {
+            return res.status(400).json({ message: `Leader email "${leaderEmail}" is already registered` });
+        }
         const newTeam = new Hackathon({
             teamName,
             leaderName,
@@ -78,6 +93,31 @@ export const registerTeam = async (req, res) => {
             collegeName,
             members
         });
+        await newTeam.save();
+
+        // Append to Google Sheets
+        // Total team size = Leader (1) + members.length
+        const totalTeamSize = members.length + 1;
+
+        // Pad members to 3 additional slots so columns G-O always align (Member 2, 3, 4)
+        const paddedMembers = [...members];
+        while (paddedMembers.length < 3) {
+            paddedMembers.push({ name: "", email: "", contact: "" });
+        }
+
+        const sheetRow = [
+            teamName,
+            leaderName,
+            collegeName,
+            totalTeamSize.toString(),
+            leaderEmail,
+            leaderContact,
+            ...paddedMembers.flatMap(m => [m.name, m.email, m.contact])
+        ];
+
+        await appendToSheet("Hackathon", sheetRow);
+
+        await sendEmail(leaderEmail);
         
         const savedTeam = await newTeam.save();
 

@@ -1,5 +1,17 @@
 import Expo from "../models/expo.model.js";
 import transporter from "../config/nodemailer.js";
+import { appendToSheet } from "../config/googlesheets.js";
+
+async function sendEmail(ownerEmail, stallName) {
+    const mailOptions = {
+        from: `Prerna Expo Registration <${process.env.ADMIN_EMAIL}>`,
+        to: ownerEmail,
+        subject: `Prerna Expo Registration - ${stallName}`,
+        html: `
+        <h1>Congratulations!</h1>
+        <p>Your stall <strong>${stallName}</strong> has been successfully registered for the Prerna Expo.</p>
+        <p>We are excited to have you on board and look forward to showcasing your innovations at the event.</p>`
+    };
 import { generateQRCodeBuffer } from "../qrcode/qrcode_gen.js";
 import { generateTicketHTML } from "../utils/emailTemplates.js";
 
@@ -65,6 +77,21 @@ export const registerExpo = async (req, res) => {
             stallCategory,
             stallDescription
         });
+        await newExpo.save();
+
+        // Append to Google Sheets
+        const sheetRow = [
+            stallName,
+            ownerName,
+            ownerEmail,
+            ownerContact,
+            stallCategory,
+            stallDescription
+        ];
+
+        await appendToSheet("Expo", sheetRow);
+
+        await sendEmail(ownerEmail, stallName);
         const savedExpo = await newExpo.save();
 
         await sendEmail(savedExpo);

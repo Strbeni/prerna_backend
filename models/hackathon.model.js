@@ -44,15 +44,15 @@ const hackathonSchema = new mongoose.Schema({
         validate: [
             {
                 validator: function (val) {
-                    return val.length >= 2;
+                    return val.length >= 1;
                 },
-                message: 'A team must have at least 2 members.'
+                message: 'A team must have at least 1 additional member (Total 2 including leader).'
             },
             {
                 validator: function (val) {
-                    return val.length <= 4;
+                    return val.length <= 3;
                 },
-                message: 'A team can have at most 4 members.'
+                message: 'A team can have at most 3 additional members (Total 4 including leader).'
             }
         ]
     }
