@@ -5,6 +5,7 @@ import cors from 'cors';
 import hackathonRouter from './routes/hackathon.routes.js';
 import startupRouter from './routes/startup.routes.js';
 import expoRouter from './routes/expo.routes.js';
+import qrcode_gen from './qrcode/qrcode_gen.js';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -31,6 +32,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/api/hackathon', hackathonRouter);
 app.use('/api/startup', startupRouter);
 app.use('/api/expo', expoRouter);
+app.use('/api/qrcode', qrcode_gen);
 
 
 

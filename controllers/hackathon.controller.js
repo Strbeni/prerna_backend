@@ -1,29 +1,48 @@
 import Hackathon from "../models/hackathon.model.js";
 import transporter from "../config/nodemailer.js";
+import { generateQRCodeBuffer } from "../qrcode/qrcode_gen.js";
+import { generateTicketHTML } from "../utils/emailTemplates.js";
 
-async function sendEmail(leaderEmail) {
+async function sendEmail(team) {
+    const { leaderEmail, teamName, _id } = team;
+    const orderId = _id.toString().toUpperCase().slice(-8);
+    
+    // Generate QR Code Buffer
+    const qrBuffer = await generateQRCodeBuffer(`PRN-HACK-${orderId}`);
+
+    const ticketData = {
+        title: "Prerna Hackathon 2026",
+        orderId: `HACK-${orderId}`,
+        date: "06 March, 2026",
+        time: "10:00 AM - 10:00 AM (Next Day)",
+        venue: "CGC Jhanjeri, Mohali, Punjab, 140307",
+        venueLink: "https://www.google.com/maps/search/?api=1&query=CGC+Jhanjeri+Mohali+Punjab+140307",
+        calendarLink: "https://calendar.google.com/calendar/render?action=TEMPLATE&text=Prerna+Hackathon+2026&dates=20260306T100000Z/20260307T100000Z&details=Prerna+Hackathon+Event+Registration&location=CGC+Jhanjeri+Mohali+Punjab+140307",
+        headerImage: "https://images.unsplash.com/photo-1504384308090-c894fdcc538d?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+        typeLabel: "Hackathon"
+    };
+
     const mailOptions = {
         from: `Prerna Hackathon <${process.env.ADMIN_EMAIL}>`,
         to: leaderEmail,
-        subject: `Prerna Hackathon Registration`,
-        html: `
-        <h1>Congratulations!</h1>
-        <p>Your team has been successfully registered for the Prerna Hackathon.</p>
-        <p>We are excited to have you on board and look forward to seeing your innovative ideas come to life during the event.</p>`
-
+        subject: `Registration Confirmed - Prerna Hackathon 2026`,
+        html: generateTicketHTML(ticketData),
+        attachments: [
+            {
+                filename: 'qrcode.png',
+                content: qrBuffer,
+                cid: 'qrcode' // same cid as in the html img src
+            }
+        ]
     };
+
     try {
         await transporter.sendMail(mailOptions);
         console.log(`Confirmation email sent to ${leaderEmail}`);
     } catch (error) {
         console.error(`Error sending email to ${leaderEmail}:`, error);
-        return res.json({ message: "Team registered but failed to send confirmation email" });
     }
-
 }
-
-
-
 
 export const registerTeam = async (req, res) => {
     try {
@@ -50,6 +69,7 @@ export const registerTeam = async (req, res) => {
         if (teamExists) {
             return res.status(400).json({ message: "Team name or leader email already exists" });
         }
+        
         const newTeam = new Hackathon({
             teamName,
             leaderName,
@@ -58,9 +78,12 @@ export const registerTeam = async (req, res) => {
             collegeName,
             members
         });
-        await newTeam.save();
+        
+        const savedTeam = await newTeam.save();
 
-        await sendEmail(leaderEmail);
+        // Pass the savedTeam to include the _id for the ticket
+        await sendEmail(savedTeam);
+        
         res.status(201).json({ message: "Team registered successfully" });
     } catch (error) {
         console.error("Error registering team:", error);
